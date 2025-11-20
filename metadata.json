@@ -1,0 +1,5 @@
+{
+  "name": "Course & Teacher Planner",
+  "description": "An application to plan course units and assign teaching hours to teachers. It provides summaries for teacher allocations and course totals to help with resource management.",
+  "requestFramePermissions": []
+}
