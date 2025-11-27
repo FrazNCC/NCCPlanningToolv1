@@ -4,9 +4,10 @@ import { User } from '../types';
 
 interface AuthPageProps {
   onLogin: (user: User) => void;
+  onAdminLogin: () => void;
 }
 
-const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
+const AuthPage: React.FC<AuthPageProps> = ({ onLogin, onAdminLogin }) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -21,22 +22,38 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
       return;
     }
 
+    // Check for Admin Login
+    if (username === 'Frazadmin' && password === 'Frazadmin') {
+        onAdminLogin();
+        return;
+    }
+
     const storedUsers = localStorage.getItem('planner_users');
     const users = storedUsers ? JSON.parse(storedUsers) : {};
 
     if (isRegistering) {
+      if (username === 'Frazadmin') {
+          setError('Cannot register with this username.');
+          return;
+      }
       if (users[username]) {
         setError('Username already exists.');
         return;
       }
       // Register new user
-      users[username] = { password }; // In a real app, hash this!
+      const newUser = { password, lastLogin: new Date().toISOString() };
+      users[username] = newUser; 
       localStorage.setItem('planner_users', JSON.stringify(users));
-      onLogin({ username });
+      onLogin({ username, lastLogin: newUser.lastLogin });
     } else {
       // Login
       if (users[username] && users[username].password === password) {
-        onLogin({ username });
+        // Update last login
+        const now = new Date().toISOString();
+        users[username].lastLogin = now;
+        localStorage.setItem('planner_users', JSON.stringify(users));
+        
+        onLogin({ username, lastLogin: now });
       } else {
         setError('Invalid username or password.');
       }

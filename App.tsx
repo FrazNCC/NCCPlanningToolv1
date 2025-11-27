@@ -1,13 +1,16 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { Teacher, Course, Unit, AppView, User } from './types';
 import PlanningGrid from './components/PlanningGrid';
 import TeacherEditor from './components/TeacherEditor';
 import CourseEditor from './components/CourseEditor';
 import AuthPage from './components/AuthPage';
+import AdminPage from './components/AdminPage';
 import { GridIcon, BookIcon, UsersIcon } from './components/Icons';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [activeView, setActiveView] = useState<AppView>('grid');
@@ -19,7 +22,12 @@ const App: React.FC = () => {
   useEffect(() => {
     const savedUser = localStorage.getItem('planner_active_user');
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+        const parsedUser = JSON.parse(savedUser);
+        if (parsedUser.isAdmin) {
+            setIsAdmin(true);
+        } else {
+            setUser(parsedUser);
+        }
     }
   }, []);
 
@@ -56,8 +64,14 @@ const App: React.FC = () => {
     localStorage.setItem('planner_active_user', JSON.stringify(loggedInUser));
   };
 
+  const handleAdminLogin = () => {
+      setIsAdmin(true);
+      localStorage.setItem('planner_active_user', JSON.stringify({ isAdmin: true, username: 'Admin' }));
+  }
+
   const handleLogout = () => {
     setUser(null);
+    setIsAdmin(false);
     localStorage.removeItem('planner_active_user');
     setActiveView('grid');
   };
@@ -190,8 +204,12 @@ const App: React.FC = () => {
     </button>
   );
 
+  if (isAdmin) {
+      return <AdminPage onLogout={handleLogout} />;
+  }
+
   if (!user) {
-    return <AuthPage onLogin={handleLogin} />;
+    return <AuthPage onLogin={handleLogin} onAdminLogin={handleAdminLogin} />;
   }
 
   return (

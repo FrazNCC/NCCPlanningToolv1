@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -32,9 +33,9 @@
 <script type="importmap">
 {
   "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/"
   }
 }
 </script>
@@ -103,7 +104,110 @@
 
         // --- COMPONENTS ---
 
-        const AuthPage = ({ onLogin }) => {
+        const AdminPage = ({ onLogout }) => {
+            const [users, setUsers] = useState({});
+
+            useEffect(() => {
+                const storedUsers = localStorage.getItem('planner_users');
+                if (storedUsers) {
+                setUsers(JSON.parse(storedUsers));
+                }
+            }, []);
+
+            const handleDeleteUser = (username) => {
+                if (window.confirm(`Are you sure you want to delete user "${username}"? This will also delete all their data.`)) {
+                const updatedUsers = { ...users };
+                delete updatedUsers[username];
+                setUsers(updatedUsers);
+                localStorage.setItem('planner_users', JSON.stringify(updatedUsers));
+                
+                // Also clean up their data
+                localStorage.removeItem(`planner_data_${username}`);
+                }
+            };
+
+            const handleResetPassword = (username) => {
+                const newPassword = prompt(`Enter new password for user "${username}":`);
+                if (newPassword !== null && newPassword.trim() !== '') {
+                const updatedUsers = { ...users };
+                updatedUsers[username] = { ...updatedUsers[username], password: newPassword };
+                setUsers(updatedUsers);
+                localStorage.setItem('planner_users', JSON.stringify(updatedUsers));
+                alert(`Password for ${username} has been updated.`);
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+                <header className="bg-white dark:bg-gray-800 shadow-md p-4 bg-gray-900 text-white">
+                    <div className="max-w-7xl mx-auto flex justify-between items-center">
+                    <h1 className="text-2xl font-bold text-indigo-400">
+                        Admin Dashboard
+                    </h1>
+                    <button 
+                        onClick={onLogout}
+                        className="text-sm text-red-400 hover:text-red-300 font-medium"
+                    >
+                        Logout
+                    </button>
+                    </div>
+                </header>
+
+                <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Registered Users</h2>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead className="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Username</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Last Logged In</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            {Object.entries(users).length === 0 ? (
+                                <tr>
+                                    <td colSpan="3" className="px-6 py-4 text-center text-gray-500">No users registered yet.</td>
+                                </tr>
+                            ) : (
+                                Object.entries(users).map(([username, data]) => (
+                                <tr key={username}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{username}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    {data.lastLogin ? new Date(data.lastLogin).toLocaleString() : 'Never'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button 
+                                        onClick={() => handleResetPassword(username)}
+                                        className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-4"
+                                        title="Reset Password"
+                                    >
+                                        Reset Password
+                                    </button>
+                                    <button 
+                                        onClick={() => handleDeleteUser(username)}
+                                        className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                                        title="Delete User"
+                                    >
+                                        Delete
+                                    </button>
+                                    </td>
+                                </tr>
+                                ))
+                            )}
+                        </tbody>
+                        </table>
+                    </div>
+                    </div>
+                </main>
+                </div>
+            );
+        };
+
+        const AuthPage = ({ onLogin, onAdminLogin }) => {
             const [isRegistering, setIsRegistering] = useState(false);
             const [username, setUsername] = useState('');
             const [password, setPassword] = useState('');
@@ -118,22 +222,38 @@
                 return;
                 }
 
+                // Check for Admin Login
+                if (username === 'Frazadmin' && password === 'Frazadmin') {
+                    onAdminLogin();
+                    return;
+                }
+
                 const storedUsers = localStorage.getItem('planner_users');
                 const users = storedUsers ? JSON.parse(storedUsers) : {};
 
                 if (isRegistering) {
+                if (username === 'Frazadmin') {
+                    setError('Cannot register with this username.');
+                    return;
+                }
                 if (users[username]) {
                     setError('Username already exists.');
                     return;
                 }
                 // Register new user
-                users[username] = { password }; // In a real app, hash this!
+                const newUser = { password, lastLogin: new Date().toISOString() };
+                users[username] = newUser; 
                 localStorage.setItem('planner_users', JSON.stringify(users));
-                onLogin({ username });
+                onLogin({ username, lastLogin: newUser.lastLogin });
                 } else {
                 // Login
                 if (users[username] && users[username].password === password) {
-                    onLogin({ username });
+                    // Update last login
+                    const now = new Date().toISOString();
+                    users[username].lastLogin = now;
+                    localStorage.setItem('planner_users', JSON.stringify(users));
+                    
+                    onLogin({ username, lastLogin: now });
                 } else {
                     setError('Invalid username or password.');
                 }
@@ -468,7 +588,7 @@
                                     required
                                 />
                             </div>
-                            <div>
+                             <div>
                                 <label htmlFor="courseTargetHours" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Teaching Hours (Target)</label>
                                 <input
                                     type="number"
@@ -511,8 +631,6 @@
         };
 
         const PlanningGrid = ({ teachers, courses, onUpdateAssignment, onClearAllAssignments }) => {
-            const [showClearConfirm, setShowClearConfirm] = useState(false);
-
             const teacherTotals = useMemo(() => {
                 const totals = {};
                 teachers.forEach(t => totals[t.id] = 0);
@@ -544,50 +662,22 @@
                 return totals;
             }, [courses]);
 
-            const handleClearAllClick = () => {
-                setShowClearConfirm(true);
-            };
-
-            const confirmClearAll = () => {
-                onClearAllAssignments();
-                setShowClearConfirm(false);
-            };
-
             return (
                 <div className="p-4 md:p-6">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Planning Grid</h2>
-                         <div className="relative">
-                            <button
-                                onClick={handleClearAllClick}
-                                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium"
-                            >
-                                Clear All Data
-                            </button>
-                             {showClearConfirm && (
-                                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-4 z-50">
-                                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
-                                        Are you sure? This will remove ALL assignments from the entire grid.
-                                    </p>
-                                    <div className="flex justify-end space-x-2">
-                                        <button
-                                            onClick={() => setShowClearConfirm(false)}
-                                            className="px-3 py-1 text-xs border rounded text-gray-600 dark:text-gray-300 hover:bg-gray-50"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={confirmClearAll}
-                                            className="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
-                                        >
-                                            Confirm
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                         <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Planning Grid</h2>
+                         <button
+                            onClick={() => {
+                                if (window.confirm('Are you sure you want to clear all assignments? This cannot be undone.')) {
+                                    onClearAllAssignments();
+                                }
+                            }}
+                            className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 shadow transition-colors"
+                        >
+                            <TrashIcon />
+                            <span>Clear All</span>
+                        </button>
                     </div>
-                    
                     <div className="overflow-x-auto shadow-lg rounded-lg">
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
                             <thead className="bg-gray-50 dark:bg-gray-700">
@@ -630,17 +720,16 @@
                                         <React.Fragment key={course.id}>
                                             <tr className="bg-indigo-100 dark:bg-indigo-900/30">
                                                 <td className="sticky left-0 bg-indigo-100 dark:bg-indigo-900/30 z-10 px-6 py-3 text-sm text-indigo-800 dark:text-indigo-200 w-64">
-                                                    <div className="flex justify-between items-center flex-wrap gap-x-4 gap-y-1">
+                                                     <div className="flex justify-between items-center flex-wrap gap-x-4 gap-y-1">
                                                         <div className="flex items-center gap-x-4 flex-wrap">
                                                             <span className="font-semibold">{course.name}</span>
                                                             <div className={`flex items-center gap-x-2 text-xs font-mono px-2 py-1 rounded ${isOverBudget ? 'bg-red-200 text-red-800 dark:bg-red-900/50 dark:text-red-200' : 'bg-indigo-200 dark:bg-indigo-800/50'}`}>
-                                                                Assigned: {totalAssigned.toFixed(1)}
-                                                                {targetHours !== undefined && ` / ${targetHours}`}
+                                                            Assigned: {totalAssigned.toFixed(1)}
+                                                            {targetHours !== undefined && ` / ${targetHours}`}
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                {/* Empty cells for teacher columns */}
                                                 {teachers.map(teacher => (
                                                     <td key={teacher.id} className="px-6 py-3"></td>
                                                 ))}
@@ -666,11 +755,7 @@
                                                                         placeholder="0"
                                                                     />
                                                                     {(unit.assignments[teacher.id] || 0) > 0 && (
-                                                                        <button 
-                                                                            type="button"
-                                                                            onClick={(e) => { e.stopPropagation(); onUpdateAssignment(course.id, unit.id, teacher.id, 0); }} 
-                                                                            className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
-                                                                        >
+                                                                        <button type="button" onClick={(e) => { e.stopPropagation(); onUpdateAssignment(course.id, unit.id, teacher.id, 0); }} className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500">
                                                                             <XCircleIcon />
                                                                         </button>
                                                                     )}
@@ -678,10 +763,10 @@
                                                             </td>
                                                         ))}
                                                     </tr>
-                                                )
+                                                );
                                             })}
                                         </React.Fragment>
-                                    )
+                                    );
                                 })}
                             </tbody>
                         </table>
@@ -692,54 +777,72 @@
 
         const App = () => {
             const [user, setUser] = useState(null);
+            const [isAdmin, setIsAdmin] = useState(false);
             const [teachers, setTeachers] = useState([]);
             const [courses, setCourses] = useState([]);
             const [activeView, setActiveView] = useState('grid');
             const [isDataLoaded, setIsDataLoaded] = useState(false);
 
             // --- Auth & Persistence Logic ---
+
             useEffect(() => {
                 const savedUser = localStorage.getItem('planner_active_user');
                 if (savedUser) {
-                    setUser(JSON.parse(savedUser));
+                    const parsedUser = JSON.parse(savedUser);
+                    if (parsedUser.isAdmin) {
+                        setIsAdmin(true);
+                        setUser({ username: 'Admin' });
+                    } else {
+                        setUser(parsedUser);
+                    }
                 }
             }, []);
 
             useEffect(() => {
-                if (user) {
+                if (user && !isAdmin) {
                     const userData = localStorage.getItem(`planner_data_${user.username}`);
                     if (userData) {
                         const parsedData = JSON.parse(userData);
-                        setTeachers(parsedData.teachers);
-                        setCourses(parsedData.courses);
+                        setTeachers(parsedData.teachers || []);
+                        setCourses(parsedData.courses || []);
                     } else {
-                        // Initialize new user with empty data
                         setTeachers([]);
                         setCourses([]);
                     }
                     setIsDataLoaded(true);
-                } else {
+                } else if (!user) {
                     setTeachers([]);
                     setCourses([]);
                     setIsDataLoaded(false);
                 }
-            }, [user]);
+            }, [user, isAdmin]);
 
             useEffect(() => {
-                if (user && isDataLoaded) {
+                if (user && isDataLoaded && !isAdmin) {
                     localStorage.setItem(`planner_data_${user.username}`, JSON.stringify({ teachers, courses }));
                 }
-            }, [teachers, courses, user, isDataLoaded]);
+            }, [teachers, courses, user, isDataLoaded, isAdmin]);
 
             const handleLogin = (loggedInUser) => {
                 setUser(loggedInUser);
+                setIsAdmin(false);
                 localStorage.setItem('planner_active_user', JSON.stringify(loggedInUser));
             };
 
+            const handleAdminLogin = () => {
+                setIsAdmin(true);
+                setUser({ username: 'Admin' });
+                localStorage.setItem('planner_active_user', JSON.stringify({ isAdmin: true, username: 'Admin' }));
+            }
+
             const handleLogout = () => {
                 setUser(null);
+                setIsAdmin(false);
                 localStorage.removeItem('planner_active_user');
                 setActiveView('grid');
+                setTeachers([]);
+                setCourses([]);
+                setIsDataLoaded(false);
             };
 
             // --- Teacher Management ---
@@ -840,7 +943,7 @@
                                     onUpdateCourse={updateCourse}
                                     onDeleteCourse={deleteCourse} 
                                     onAddUnit={addUnit} 
-                                    onUpdateUnit={updateUnit}
+                                    onUpdateUnit={updateUnit} 
                                     onDeleteUnit={deleteUnit} />;
                     case 'teachers':
                         return <TeacherEditor teachers={teachers} onAddTeacher={addTeacher} onUpdateTeacher={updateTeacher} onDeleteTeacher={deleteTeacher} />;
@@ -869,8 +972,12 @@
                 </button>
             );
 
+            if (isAdmin) {
+                return <AdminPage onLogout={handleLogout} />;
+            }
+
             if (!user) {
-                return <AuthPage onLogin={handleLogin} />;
+                return <AuthPage onLogin={handleLogin} onAdminLogin={handleAdminLogin} />;
             }
 
             return (
@@ -893,6 +1000,7 @@
                             </div>
                         </div>
                     </header>
+                    
                     <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
                         <div className="max-w-7xl mx-auto px-4">
                             <nav className="flex space-x-2 py-2">
@@ -902,6 +1010,7 @@
                             </nav>
                         </div>
                     </div>
+
                     <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                         {renderView()}
                     </main>

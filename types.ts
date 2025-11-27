@@ -20,6 +20,7 @@ export interface Course {
 
 export interface User {
   username: string;
+  lastLogin?: string;
 }
 
 export type AppView = 'grid' | 'courses' | 'teachers';
