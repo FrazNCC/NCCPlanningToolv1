@@ -1,7 +1,5 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { Teacher, Course, Unit, AppView, User } from './types';
-import { initialTeachers, initialCourses } from './data';
 import PlanningGrid from './components/PlanningGrid';
 import TeacherEditor from './components/TeacherEditor';
 import CourseEditor from './components/CourseEditor';
@@ -34,9 +32,9 @@ const App: React.FC = () => {
         setTeachers(parsedData.teachers);
         setCourses(parsedData.courses);
       } else {
-        // Initialize new user with default data
-        setTeachers(initialTeachers);
-        setCourses(initialCourses);
+        // Initialize new user with empty data
+        setTeachers([]);
+        setCourses([]);
       }
       setIsDataLoaded(true);
     } else {
@@ -163,7 +161,7 @@ const App: React.FC = () => {
                     onUpdateCourse={updateCourse}
                     onDeleteCourse={deleteCourse} 
                     onAddUnit={addUnit} 
-                    onUpdateUnit={updateUnit}
+                    onUpdateUnit={updateUnit} 
                     onDeleteUnit={deleteUnit} />;
       case 'teachers':
         return <TeacherEditor teachers={teachers} onAddTeacher={addTeacher} onUpdateTeacher={updateTeacher} onDeleteTeacher={deleteTeacher} />;
