@@ -32,9 +32,9 @@
 <script type="importmap">
 {
   "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0"
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
   }
 }
 </script>
@@ -164,6 +164,109 @@
         );
 
         // --- COMPONENTS ---
+
+        const AuthPage = ({ onLogin }) => {
+            const [isRegistering, setIsRegistering] = useState(false);
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                setError('');
+
+                if (!username.trim() || !password.trim()) {
+                setError('Please enter both username and password.');
+                return;
+                }
+
+                const storedUsers = localStorage.getItem('planner_users');
+                const users = storedUsers ? JSON.parse(storedUsers) : {};
+
+                if (isRegistering) {
+                if (users[username]) {
+                    setError('Username already exists.');
+                    return;
+                }
+                // Register new user
+                users[username] = { password }; // In a real app, hash this!
+                localStorage.setItem('planner_users', JSON.stringify(users));
+                onLogin({ username });
+                } else {
+                // Login
+                if (users[username] && users[username].password === password) {
+                    onLogin({ username });
+                } else {
+                    setError('Invalid username or password.');
+                }
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col justify-center items-center p-4">
+                <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden">
+                    <div className="bg-indigo-600 p-6 text-center">
+                    <h1 className="text-3xl font-bold text-white">Course Planner</h1>
+                    <p className="text-indigo-200 mt-2">Plan units and assign teaching hours efficiently.</p>
+                    </div>
+                    
+                    <div className="p-8">
+                    <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-6 text-center">
+                        {isRegistering ? 'Create Account' : 'Welcome Back'}
+                    </h2>
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+                        <input
+                            type="text"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200"
+                            placeholder="Enter your username"
+                        />
+                        </div>
+                        <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200"
+                            placeholder="Enter your password"
+                        />
+                        </div>
+
+                        {error && (
+                        <div className="text-red-500 text-sm text-center bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                            {error}
+                        </div>
+                        )}
+
+                        <button
+                        type="submit"
+                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                        >
+                        {isRegistering ? 'Sign Up' : 'Sign In'}
+                        </button>
+                    </form>
+
+                    <div className="mt-6 text-center">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {isRegistering ? 'Already have an account?' : "Don't have an account?"}{' '}
+                        <button
+                            onClick={() => { setIsRegistering(!isRegistering); setError(''); }}
+                            className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+                        >
+                            {isRegistering ? 'Log in' : 'Register now'}
+                        </button>
+                        </p>
+                    </div>
+                    </div>
+                </div>
+                </div>
+            );
+        };
 
         const Modal = ({ isOpen, onClose, title, children }) => {
             if (!isOpen) return null;
@@ -480,7 +583,7 @@
                     course.units.forEach(unit => {
                         Object.entries(unit.assignments).forEach(([teacherId, hours]) => {
                             if (totals[teacherId] !== undefined) {
-                                totals[teacherId] += hours;
+                                totals[teacherId] += Number(hours);
                             }
                         });
                     });
@@ -495,7 +598,7 @@
                     let assigned = 0;
                     course.units.forEach(unit => {
                         Object.values(unit.assignments).forEach(hours => {
-                            assigned += hours;
+                            assigned += Number(hours);
                         });
                     });
                     totals[course.id] = { assigned };
@@ -605,7 +708,7 @@
                                                 ))}
                                             </tr>
                                             {course.units.map(unit => {
-                                                const unitTotalAssigned = Object.values(unit.assignments).reduce((sum, hours) => sum + hours, 0);
+                                                const unitTotalAssigned = Object.values(unit.assignments).reduce((sum, hours) => sum + Number(hours), 0);
                                                 return (
                                                     <tr key={unit.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                                                         <td className="sticky left-0 bg-white dark:bg-gray-800 z-10 px-6 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 w-64 whitespace-nowrap">
@@ -650,9 +753,56 @@
         };
 
         const App = () => {
+            const [user, setUser] = useState(null);
             const [teachers, setTeachers] = useState(initialTeachers);
             const [courses, setCourses] = useState(initialCourses);
             const [activeView, setActiveView] = useState('grid');
+            const [isDataLoaded, setIsDataLoaded] = useState(false);
+
+            // --- Auth & Persistence Logic ---
+            useEffect(() => {
+                const savedUser = localStorage.getItem('planner_active_user');
+                if (savedUser) {
+                    setUser(JSON.parse(savedUser));
+                }
+            }, []);
+
+            useEffect(() => {
+                if (user) {
+                    const userData = localStorage.getItem(`planner_data_${user.username}`);
+                    if (userData) {
+                        const parsedData = JSON.parse(userData);
+                        setTeachers(parsedData.teachers);
+                        setCourses(parsedData.courses);
+                    } else {
+                        // Initialize new user with default data
+                        setTeachers(initialTeachers);
+                        setCourses(initialCourses);
+                    }
+                    setIsDataLoaded(true);
+                } else {
+                    setTeachers([]);
+                    setCourses([]);
+                    setIsDataLoaded(false);
+                }
+            }, [user]);
+
+            useEffect(() => {
+                if (user && isDataLoaded) {
+                    localStorage.setItem(`planner_data_${user.username}`, JSON.stringify({ teachers, courses }));
+                }
+            }, [teachers, courses, user, isDataLoaded]);
+
+            const handleLogin = (loggedInUser) => {
+                setUser(loggedInUser);
+                localStorage.setItem('planner_active_user', JSON.stringify(loggedInUser));
+            };
+
+            const handleLogout = () => {
+                setUser(null);
+                localStorage.removeItem('planner_active_user');
+                setActiveView('grid');
+            };
 
             // --- Teacher Management ---
             const addTeacher = useCallback((name, allowance) => {
@@ -666,7 +816,6 @@
 
             const deleteTeacher = useCallback((id) => {
                 setTeachers(prev => prev.filter(t => t.id !== id));
-                // Also remove their assignments from courses
                 setCourses(prevCourses => prevCourses.map(course => ({
                     ...course,
                     units: course.units.map(unit => {
@@ -782,6 +931,10 @@
                 </button>
             );
 
+            if (!user) {
+                return <AuthPage onLogin={handleLogin} />;
+            }
+
             return (
                 <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
                     <header className="bg-white dark:bg-gray-800 shadow-md p-4">
@@ -789,13 +942,28 @@
                             <h1 className="text-2xl md:text-3xl font-bold text-indigo-600 dark:text-indigo-400">
                                 Course Planner
                             </h1>
-                            <nav className="flex space-x-2 bg-gray-100 dark:bg-gray-900 p-1 rounded-lg">
+                            <div className="flex items-center space-x-4">
+                                <span className="text-sm text-gray-600 dark:text-gray-400 hidden sm:inline">
+                                    User: <span className="font-semibold text-gray-800 dark:text-gray-200">{user.username}</span>
+                                </span>
+                                <button 
+                                    onClick={handleLogout}
+                                    className="text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+                    <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                        <div className="max-w-7xl mx-auto px-4">
+                            <nav className="flex space-x-2 py-2">
                                 <NavButton view="grid" label="Planning Grid" icon={<GridIcon/>}/>
                                 <NavButton view="courses" label="Courses" icon={<BookIcon/>}/>
                                 <NavButton view="teachers" label="Teachers" icon={<UsersIcon/>}/>
                             </nav>
                         </div>
-                    </header>
+                    </div>
                     <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                         {renderView()}
                     </main>

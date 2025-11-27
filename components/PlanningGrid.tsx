@@ -1,14 +1,16 @@
+
 import React, { useMemo } from 'react';
 import { Teacher, Course, Unit } from '../types';
-import { XCircleIcon } from './Icons';
+import { XCircleIcon, TrashIcon } from './Icons';
 
 interface PlanningGridProps {
   teachers: Teacher[];
   courses: Course[];
   onUpdateAssignment: (courseId: string, unitId: string, teacherId: string, hours: number) => void;
+  onClearAllAssignments: () => void;
 }
 
-const PlanningGrid: React.FC<PlanningGridProps> = ({ teachers, courses, onUpdateAssignment }) => {
+const PlanningGrid: React.FC<PlanningGridProps> = ({ teachers, courses, onUpdateAssignment, onClearAllAssignments }) => {
   const teacherTotals = useMemo(() => {
     const totals: Record<string, number> = {};
     teachers.forEach(t => totals[t.id] = 0);
@@ -42,7 +44,20 @@ const PlanningGrid: React.FC<PlanningGridProps> = ({ teachers, courses, onUpdate
 
   return (
     <div className="p-4 md:p-6">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-100">Planning Grid</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Planning Grid</h2>
+        <button
+          onClick={() => {
+            if (window.confirm('Are you sure you want to clear all assignments? This cannot be undone.')) {
+              onClearAllAssignments();
+            }
+          }}
+          className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 shadow transition-colors"
+        >
+          <TrashIcon />
+          <span>Clear All</span>
+        </button>
+      </div>
       <div className="overflow-x-auto shadow-lg rounded-lg">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
           <thead className="bg-gray-50 dark:bg-gray-700">
@@ -101,7 +116,7 @@ const PlanningGrid: React.FC<PlanningGridProps> = ({ teachers, courses, onUpdate
                   ))}
                 </tr>
                 {course.units.map(unit => {
-                   const unitTotalAssigned = Object.values(unit.assignments).reduce((sum: number, hours) => sum + (hours as number), 0);
+                   const unitTotalAssigned = Object.values(unit.assignments).reduce<number>((sum, hours) => sum + (hours as number), 0);
                    return (
                   <tr key={unit.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="sticky left-0 bg-white dark:bg-gray-800 z-10 px-6 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 w-64 whitespace-nowrap">

@@ -18,4 +18,8 @@ export interface Course {
   units: Unit[];
 }
 
+export interface User {
+  username: string;
+}
+
 export type AppView = 'grid' | 'courses' | 'teachers';
