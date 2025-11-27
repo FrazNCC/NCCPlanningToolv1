@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Teacher, Course, Unit } from '../types';
 import { XCircleIcon } from './Icons';
@@ -102,7 +101,7 @@ const PlanningGrid: React.FC<PlanningGridProps> = ({ teachers, courses, onUpdate
                   ))}
                 </tr>
                 {course.units.map(unit => {
-                   const unitTotalAssigned = Object.values(unit.assignments).reduce((sum, hours) => sum + (hours as number), 0);
+                   const unitTotalAssigned = Object.values(unit.assignments).reduce((sum: number, hours) => sum + (hours as number), 0);
                    return (
                   <tr key={unit.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="sticky left-0 bg-white dark:bg-gray-800 z-10 px-6 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 w-64 whitespace-nowrap">
