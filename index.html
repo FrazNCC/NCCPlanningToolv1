@@ -12,6 +12,9 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- jsPDF & AutoTable for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     
     <style>
         /* Custom scrollbar for better look in the grid */
@@ -102,10 +105,18 @@
             </svg>
         );
 
+        const DownloadIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+        );
+
         // --- COMPONENTS ---
 
         const AdminPage = ({ onLogout }) => {
             const [users, setUsers] = useState({});
+            const [newUsername, setNewUsername] = useState('');
+            const [newPassword, setNewPassword] = useState('');
 
             useEffect(() => {
                 const storedUsers = localStorage.getItem('planner_users');
@@ -137,6 +148,37 @@
                 }
             };
 
+            const handleAddUser = (e) => {
+                e.preventDefault();
+                if (!newUsername.trim() || !newPassword.trim()) {
+                    alert('Please enter both username and password.');
+                    return;
+                }
+                
+                if (newUsername === 'Frazadmin') {
+                    alert('Cannot create another admin user with this name.');
+                    return;
+                }
+
+                if (users[newUsername]) {
+                    alert('Username already exists.');
+                    return;
+                }
+
+                const updatedUsers = { ...users };
+                updatedUsers[newUsername] = { 
+                    password: newPassword, 
+                    lastLogin: null 
+                };
+                
+                setUsers(updatedUsers);
+                localStorage.setItem('planner_users', JSON.stringify(updatedUsers));
+                
+                setNewUsername('');
+                setNewPassword('');
+                alert(`User "${newUsername}" created successfully.`);
+            };
+
             return (
                 <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
                 <header className="bg-white dark:bg-gray-800 shadow-md p-4 bg-gray-900 text-white">
@@ -154,6 +196,44 @@
                 </header>
 
                 <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+                    {/* Create User Section */}
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden mb-8">
+                         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Create New User</h2>
+                        </div>
+                        <div className="p-6">
+                            <form onSubmit={handleAddUser} className="flex flex-col md:flex-row gap-4 items-end">
+                                <div className="flex-1 w-full">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+                                    <input
+                                        type="text"
+                                        value={newUsername}
+                                        onChange={(e) => setNewUsername(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                        placeholder="New username"
+                                    />
+                                </div>
+                                <div className="flex-1 w-full">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+                                    <input
+                                        type="password"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                        placeholder="New password"
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="w-full md:w-auto px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 shadow-sm"
+                                >
+                                    Create User
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    {/* User List Section */}
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
                     <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Registered Users</h2>
@@ -208,7 +288,6 @@
         };
 
         const AuthPage = ({ onLogin, onAdminLogin }) => {
-            const [isRegistering, setIsRegistering] = useState(false);
             const [username, setUsername] = useState('');
             const [password, setPassword] = useState('');
             const [error, setError] = useState('');
@@ -231,21 +310,6 @@
                 const storedUsers = localStorage.getItem('planner_users');
                 const users = storedUsers ? JSON.parse(storedUsers) : {};
 
-                if (isRegistering) {
-                if (username === 'Frazadmin') {
-                    setError('Cannot register with this username.');
-                    return;
-                }
-                if (users[username]) {
-                    setError('Username already exists.');
-                    return;
-                }
-                // Register new user
-                const newUser = { password, lastLogin: new Date().toISOString() };
-                users[username] = newUser; 
-                localStorage.setItem('planner_users', JSON.stringify(users));
-                onLogin({ username, lastLogin: newUser.lastLogin });
-                } else {
                 // Login
                 if (users[username] && users[username].password === password) {
                     // Update last login
@@ -256,7 +320,6 @@
                     onLogin({ username, lastLogin: now });
                 } else {
                     setError('Invalid username or password.');
-                }
                 }
             };
 
@@ -270,7 +333,7 @@
                     
                     <div className="p-8">
                     <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-6 text-center">
-                        {isRegistering ? 'Create Account' : 'Welcome Back'}
+                        Login
                     </h2>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -305,21 +368,9 @@
                         type="submit"
                         className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
                         >
-                        {isRegistering ? 'Sign Up' : 'Sign In'}
+                        Sign In
                         </button>
                     </form>
-
-                    <div className="mt-6 text-center">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {isRegistering ? 'Already have an account?' : "Don't have an account?"}{' '}
-                        <button
-                            onClick={() => { setIsRegistering(!isRegistering); setError(''); }}
-                            className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
-                        >
-                            {isRegistering ? 'Log in' : 'Register now'}
-                        </button>
-                        </p>
-                    </div>
                     </div>
                 </div>
                 </div>
@@ -662,21 +713,109 @@
                 return totals;
             }, [courses]);
 
+            const exportToPDF = () => {
+                if (!window.jspdf) {
+                    alert('PDF library not loaded');
+                    return;
+                }
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'landscape' });
+
+                // Define headers: [Course/Unit, ...Teachers]
+                const headers = [["Course / Unit", ...teachers.map(t => t.name)]];
+                
+                const data = [];
+
+                // Summary Rows
+                data.push(["Teaching Hours", ...teachers.map(t => t.allowance.toString())]);
+                data.push(["Total Assigned", ...teachers.map(t => teacherTotals[t.id].toFixed(1))]);
+                data.push(["Left", ...teachers.map(t => (t.allowance - teacherTotals[t.id]).toFixed(1))]);
+                
+                let courseRowIndices = []; // Track indices of course headers to style them
+
+                courses.forEach(course => {
+                    const totalAssigned = courseTotals[course.id]?.assigned || 0;
+                    const target = course.targetHours;
+                    const label = `${course.name} (Assigned: ${totalAssigned.toFixed(1)}${target ? ' / ' + target : ''})`;
+                    
+                    // Add Course Header Row
+                    data.push([label, ...teachers.map(() => "")]);
+                    courseRowIndices.push(data.length - 1); // Mark this row index
+
+                    // Add Unit Rows
+                    course.units.forEach(unit => {
+                        const unitTotal = Object.values(unit.assignments).reduce((sum, h) => sum + Number(h), 0);
+                        const row = [`${unit.name} (${unitTotal.toFixed(1)})`];
+                        teachers.forEach(t => {
+                            const h = unit.assignments[t.id];
+                            row.push(h ? h.toString() : "");
+                        });
+                        data.push(row);
+                    });
+                });
+
+                doc.autoTable({
+                    head: headers,
+                    body: data,
+                    startY: 20,
+                    styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+                    headStyles: { fillColor: [79, 70, 229], textColor: 255 },
+                    didParseCell: function(data) {
+                        // Style Summary rows (row index 0, 1, 2)
+                        if (data.row.section === 'body' && data.row.index < 3) {
+                            data.cell.styles.fontStyle = 'bold';
+                            data.cell.styles.fillColor = [243, 244, 246]; // Gray 100
+                            
+                            // Color logic for "Left" row (index 2)
+                            if (data.row.index === 2 && data.column.index > 0) {
+                                const val = parseFloat(data.cell.text);
+                                if (!isNaN(val)) {
+                                    if (val < 0) data.cell.styles.textColor = [220, 38, 38]; // Red
+                                    else data.cell.styles.textColor = [22, 163, 74]; // Green
+                                }
+                            }
+                        }
+                        // Style Course Header Rows
+                        if (data.row.section === 'body' && courseRowIndices.includes(data.row.index)) {
+                            data.cell.styles.fillColor = [224, 231, 255]; // Light Indigo
+                            data.cell.styles.textColor = [55, 48, 163];
+                            data.cell.styles.fontStyle = 'bold';
+                        }
+                    },
+                    margin: { top: 20 }
+                });
+
+                doc.text("Course & Teacher Planner", 14, 15);
+                doc.setFontSize(10);
+                doc.text(`Generated: ${new Date().toLocaleDateString()}`, 250, 15);
+
+                doc.save("planner_export.pdf");
+            };
+
             return (
                 <div className="p-4 md:p-6">
                     <div className="flex justify-between items-center mb-6">
                          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Planning Grid</h2>
-                         <button
-                            onClick={() => {
-                                if (window.confirm('Are you sure you want to clear all assignments? This cannot be undone.')) {
-                                    onClearAllAssignments();
-                                }
-                            }}
-                            className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 shadow transition-colors"
-                        >
-                            <TrashIcon />
-                            <span>Clear All</span>
-                        </button>
+                         <div className="flex items-center space-x-2">
+                             <button
+                                onClick={exportToPDF}
+                                className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow transition-colors"
+                             >
+                                <DownloadIcon />
+                                <span>Export PDF</span>
+                             </button>
+                             <button
+                                onClick={() => {
+                                    if (window.confirm('Are you sure you want to clear all assignments? This cannot be undone.')) {
+                                        onClearAllAssignments();
+                                    }
+                                }}
+                                className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 shadow transition-colors"
+                            >
+                                <TrashIcon />
+                                <span>Clear All</span>
+                            </button>
+                         </div>
                     </div>
                     <div className="overflow-x-auto shadow-lg rounded-lg">
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
@@ -743,8 +882,8 @@
                                                             <span className="ml-2 text-gray-400 dark:text-gray-500 text-xs">({unitTotalAssigned.toFixed(1)})</span>
                                                         </td>
                                                         {teachers.map(teacher => (
-                                                            <td key={teacher.id} className="px-2 py-1 whitespace-nowrap text-sm text-gray-500">
-                                                                <div className="relative">
+                                                            <td key={teacher.id} className="px-2 py-1 whitespace-nowrap text-sm text-gray-500 text-center align-middle">
+                                                                <div className="relative inline-block">
                                                                     <input
                                                                         type="number"
                                                                         step="0.5"
@@ -934,6 +1073,11 @@
                 );
             }, []);
 
+            // Sort teachers alphabetically by name
+            const sortedTeachers = useMemo(() => {
+                return [...teachers].sort((a, b) => a.name.localeCompare(b.name));
+            }, [teachers]);
+
             const renderView = () => {
                 switch (activeView) {
                     case 'courses':
@@ -946,11 +1090,11 @@
                                     onUpdateUnit={updateUnit} 
                                     onDeleteUnit={deleteUnit} />;
                     case 'teachers':
-                        return <TeacherEditor teachers={teachers} onAddTeacher={addTeacher} onUpdateTeacher={updateTeacher} onDeleteTeacher={deleteTeacher} />;
+                        return <TeacherEditor teachers={sortedTeachers} onAddTeacher={addTeacher} onUpdateTeacher={updateTeacher} onDeleteTeacher={deleteTeacher} />;
                     case 'grid':
                     default:
                         return <PlanningGrid 
-                                  teachers={teachers} 
+                                  teachers={sortedTeachers} 
                                   courses={courses} 
                                   onUpdateAssignment={updateAssignment}
                                   onClearAllAssignments={clearAllAssignments}
