@@ -23,4 +23,10 @@ export interface User {
   lastLogin?: string;
 }
 
+// Added UserData for system administration purposes
+export interface UserData {
+  password?: string;
+  lastLogin?: string;
+}
+
 export type AppView = 'grid' | 'courses' | 'teachers';

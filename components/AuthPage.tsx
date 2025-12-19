@@ -17,13 +17,16 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin, onAdminLogin }) => {
     e.preventDefault();
     setError('');
 
-    if (!username.trim() || !password.trim()) {
+    const uname = username.trim();
+    const pass = password.trim();
+
+    if (!uname || !pass) {
       setError('Please enter both username and password.');
       return;
     }
 
     // Check for Admin Login
-    if (username === 'Frazadmin' && password === 'Frazadmin') {
+    if (uname === 'Frazadmin' && pass === 'Frazadmin') {
         onAdminLogin();
         return;
     }
@@ -32,28 +35,28 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin, onAdminLogin }) => {
     const users = storedUsers ? JSON.parse(storedUsers) : {};
 
     if (isRegistering) {
-      if (username === 'Frazadmin') {
-          setError('Cannot register with this username.');
+      if (uname.toLowerCase() === 'frazadmin') {
+          setError('Cannot register with this reserved username.');
           return;
       }
-      if (users[username]) {
+      if (users[uname]) {
         setError('Username already exists.');
         return;
       }
       // Register new user
-      const newUser = { password, lastLogin: new Date().toISOString() };
-      users[username] = newUser; 
+      const newUser = { password: pass, lastLogin: new Date().toISOString() };
+      users[uname] = newUser; 
       localStorage.setItem('planner_users', JSON.stringify(users));
-      onLogin({ username, lastLogin: newUser.lastLogin });
+      onLogin({ username: uname, lastLogin: newUser.lastLogin });
     } else {
       // Login
-      if (users[username] && users[username].password === password) {
+      if (users[uname] && users[uname].password === pass) {
         // Update last login
         const now = new Date().toISOString();
-        users[username].lastLogin = now;
+        users[uname].lastLogin = now;
         localStorage.setItem('planner_users', JSON.stringify(users));
         
-        onLogin({ username, lastLogin: now });
+        onLogin({ username: uname, lastLogin: now });
       } else {
         setError('Invalid username or password.');
       }
@@ -113,6 +116,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin, onAdminLogin }) => {
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {isRegistering ? 'Already have an account?' : "Don't have an account?"}{' '}
               <button
+                type="button"
                 onClick={() => { setIsRegistering(!isRegistering); setError(''); }}
                 className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
               >
